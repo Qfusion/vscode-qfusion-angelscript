@@ -3,40 +3,12 @@
 	"scopeName": "source.angelscript",
 	"patterns": [
 		{
-			"name": "keyword.macro.ufunction.angelscript",
-			"match": "\\b(BlueprintOverride|BlueprintEvent|BlueprintCallable|NotBlueprintCallable|BlueprintPure|NetFunction|DevFunction|Category|Meta|CallInEditor|Unreliable|NetMUlticast|Client|Server|BlueprintAuthorityOnly)\\b\\s*"
-		},
-		{
-			"name": "keyword.macro.uproperty.angelscript",
-			"match": "\\b(EditAnywhere|EditDefaultsOnly|EditInstanceOnly|BlueprintReadWrite|BlueprintReadOnly|NotBlueprintVisible|NotEditable|DefaultComponent|RootComponent|Attach|AttachSocket|Transient|Interp|NoClear|NotVisible|EditConst|BlueprintHidden|ShowOnActor|Config|Replicated|ReplicationCondition|EditFixedSize)\\b\\s*"
-		},
-		{
-			"name": "keyword.statement.angelscript",
-			"match": "\\b(default|delegate|event|import|auto)\\b\\s*"
-		},
-		{
-			"name": "support.type.component.angelscript",
-			"match": "\\bU[A-Za-z_0-9]*Component\\b"
-		},
-		{
-			"name": "variable.other.basictype.angelscript",
-			"match": "\\b(FVector|FVector2D|TArray|TMap|TSet|FRotator|FQuat|FString|FName|FText|FTransform|TPerPlayer|TSubclassOf)\\b"
-		},
-		{
 			"name": "variable.other.structtype.angelscript",
-			"match": "\\bF[A-Z][A-Za-z0-9_]+\\b"
+			"match": "\\b[A-Z][A-Za-z0-9_]+(\\s[@&])?\\b"
 		},
 		{
-			"name": "variable.other.objecttype.angelscript",
-			"match": "\\bU[A-Z][A-Za-z0-9_]+\\b"
-		},
-		{
-			"name": "variable.other.enumtype.angelscript",
-			"match": "\\bE[A-Z][A-Za-z0-9_]+\\b"
-		},
-		{
-			"name": "support.type.actor.angelscript",
-			"match": "\\bA[A-Z][A-Za-z0-9_]+\\b"
+		    "name": "keyword.statement.angelscript",
+			"match": "\\b(auto|is)\\b\\s*"
 		},
 		{
 			"include": "#special_block"
@@ -45,20 +17,12 @@
 			"include": "#strings"
 		},
 		{
-			"match": "\\b(override|final|private|protected)\\b",
-			"name": "storage.modifier.angelscript"
-		},
-		{
 			"match": "\\bthis\\b",
 			"name": "variable.language.this.angelscript"
 		},
 		{
-			"match": "\\bnullptr\\b",
+			"match": "\\bnull\\b",
 			"name": "constant.language.angelscript"
-		},
-		{
-			"match": "\\b(Cast)\\b\\s*",
-			"name": "keyword.operator.cast.angelscript"
 		},
 		{
 			"match": "::",
@@ -318,73 +282,6 @@
 							"include": "$base"
 						}
 					]
-				}
-			]
-		},
-		"strings": {
-			"patterns": [
-				{
-					"begin": "(u|u8|U|L)?\"",
-					"beginCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.begin.angelscript"
-						},
-						"1": {
-							"name": "meta.encoding.angelscript"
-						}
-					},
-					"end": "\"",
-					"endCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.end.angelscript"
-						}
-					},
-					"name": "string.quoted.double.angelscript",
-					"patterns": [
-						{
-							"match": "\\\\u\\h{4}|\\\\U\\h{8}",
-							"name": "constant.character.escape.angelscript"
-						},
-						{
-							"match": "\\\\['\"?\\\\abfnrtv]",
-							"name": "constant.character.escape.angelscript"
-						},
-						{
-							"match": "\\\\[0-7]{1,3}",
-							"name": "constant.character.escape.angelscript"
-						},
-						{
-							"match": "\\\\x\\h+",
-							"name": "constant.character.escape.angelscript"
-						},
-						{
-							"include": "source.c#string_placeholder"
-						}
-					]
-				},
-				{
-					"begin": "(u|u8|U|L)?R\"(?:([^ ()\\\\\\t]{0,16})|([^ ()\\\\\\t]*))\\(",
-					"beginCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.begin.angelscript"
-						},
-						"1": {
-							"name": "meta.encoding.angelscript"
-						},
-						"3": {
-							"name": "invalid.illegal.delimiter-too-long.angelscript"
-						}
-					},
-					"end": "\\)\\2(\\3)\"",
-					"endCaptures": {
-						"0": {
-							"name": "punctuation.definition.string.end.angelscript"
-						},
-						"1": {
-							"name": "invalid.illegal.delimiter-too-long.angelscript"
-						}
-					},
-					"name": "string.quoted.double.raw.angelscript"
 				}
 			]
 		}

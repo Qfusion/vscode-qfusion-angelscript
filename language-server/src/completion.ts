@@ -271,7 +271,7 @@ function GetGlobalScopeTypes(scope : scriptfiles.ASScope, includeClass : boolean
 function GetScopeCompletions(initialTerm : string, scope : scriptfiles.ASScope, completions : Array<CompletionItem>)
 {
     if (scope.scopetype != scriptfiles.ASScopeType.Class
-        && scope.scopetype != scriptfiles.ASScopeType.Global
+    //    && scope.scopetype != scriptfiles.ASScopeType.Global
     )
     {
         for (let scopevar of scope.variables)
@@ -298,6 +298,12 @@ function GetVariableType(variable : string, scope : scriptfiles.ASScope) : strin
         if (scopevar.name == variable)
         {
             return scopevar.typename;
+        }
+    }
+
+    if (variable == "this") {
+        if (scope.scopetype == scriptfiles.ASScopeType.Function && scope.parentscope.scopetype == scriptfiles.ASScopeType.Class) {
+            return scope.parentscope.typename;
         }
     }
 
@@ -636,14 +642,10 @@ function AddKeywordCompletions(completingStr : string, completions : Array<Compl
 {
     for(let kw of [
         "if", "else", "while", "for",
-        "default", "UFUNCTION", "UCLASS", "UPROPERTY",
-        "delegate", "event", "class", "struct",
+        "class",
         "void", "float", "bool", "int", "double",
-        "nullptr", "return", "true", "false", "this",
-        "const", "override",
-
-        "BlueprintOverride","BlueprintEvent","BlueprintCallable","NotBlueprintCallable","BlueprintPure","NetFunction","DevFunction","Category","Meta","NetMulticast","Client","Server","BlueprintAuthorityOnly","CallInEditor","Unreliable",
-        "EditAnywhere","EditDefaultsOnly","EditInstanceOnly","BlueprintReadWrite","BlueprintReadOnly","NotBlueprintVisible","NotEditable","DefaultComponent","RootComponent","Attach","Transient","NotVisible","EditConst","BlueprintHidden","Replicated","ReplicationCondition","Interp","NoClear",
+        "null", "return", "true", "false", "this",
+        "const",
     ])
     {
         if (CanCompleteTo(completingStr, kw))
@@ -885,7 +887,7 @@ export function Signature(params : TextDocumentPositionParams) : SignatureHelp
 function GetScopeHover(initialTerm : string, scope : scriptfiles.ASScope) : string | null
 {
     if (scope.scopetype != scriptfiles.ASScopeType.Class
-        && scope.scopetype != scriptfiles.ASScopeType.Global
+        //&& scope.scopetype != scriptfiles.ASScopeType.Global
     )
     {
         for (let scopevar of scope.variables)

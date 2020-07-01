@@ -538,9 +538,9 @@ export function CleanTypeName(typename : string) : string
     if (typename.startsWith("const "))
         typename = typename.substring(6);
     if (typename.endsWith("&"))
-        typename = typename.substring(0, typename.length-1);
+        typename = typename.substring(0, typename.length-1).trim();
     if (typename.endsWith("@"))
-        typename = typename.substring(0, typename.length-1);
+        typename = typename.substring(0, typename.length-1).trim();
     return typename;
 }
 
@@ -600,9 +600,14 @@ export function AddPrimitiveTypes()
     for (let primtype of [
         "int",
         "int8",
+        "uint8",
         "uint",
+        "int16",
+        "uint16",
         "int32",
+        "uint32",
         "int64",
+        "uint64",
         "float",
         "double",
         "bool",

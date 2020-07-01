@@ -92,7 +92,6 @@ function connect_unreal() {
 			{
 				let dbStr = msg.readString();
 				let dbObj = JSON.parse(dbStr);
-				typedb.AddPrimitiveTypes();
 				typedb.AddTypesFromUnreal(dbObj);
 			}
 		}
@@ -153,13 +152,16 @@ connection.onInitialize((_params): InitializeResult => {
 	//connection.console.log("RootPath: "+RootPath);
 	//connection.console.log("RootUri: "+RootUri+" from "+_params.rootUri);
 
+	typedb.AddPrimitiveTypes();
+
 	// Read all files in the workspace before we complete initialization, so we have completion on everything
 	glob(RootPath+"/**/*.as", null, function(err : any, files : any)
 	{
 		let modules : Array<scriptfiles.ASFile> = [];
 		for (let file of files)
 		{
-			let asfile = UpdateFileFromDisk(getFileUri(file));
+			let uri = getFileUri(file);
+			let asfile = UpdateFileFromDisk(uri);
 			if (asfile)
 				modules.push(asfile);
 		}
@@ -212,6 +214,7 @@ connection.onDidChangeWatchedFiles((_change) => {
 // This handler provides the initial list of the completion items.
 connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 	let completions = completion.Complete(_textDocumentPosition);
+	let debug = modules;
 	//connection.console.log(JSON.stringify(completions));
 	return completions;
 });
@@ -277,22 +280,24 @@ function UpdateFileFromDisk(uri : string) : scriptfiles.ASFile
 {
 	let filename = getPathName(uri);
 	let modulename = getModuleName(uri);
-	if (!fs.existsSync(filename))
+
+	if (!fs.existsSync(filename)) {
 		return scriptfiles.UpdateContent(uri, modulename, "");
+	}
 
 	let stat = fs.lstatSync(filename);
 	if (!stat.isFile())
 		return null;
 	
-	//connection.console.log("Update from disk: "+uri+" = "+modulename+" @ "+filename);
+	//connection.console.log("Update from disk 2: "+uri+" = "+modulename+" @ "+filename);
 
 	let content = fs.readFileSync(filename, 'utf8');
-	return scriptfiles.UpdateContent(uri, modulename, content);
+	return scriptfiles.UpdateContent(uri, modulename, content, null);
 }
 
 function getPathName(uri : string) : string
 {
-	let pathname = decodeURIComponent(uri.replace("file://", "")).replace(/\//g, "\\");
+	let pathname = decodeURIComponent(uri.replace("file://", ""));
 	if(pathname.startsWith("\\"))
 		pathname = pathname.substr(1);
 
@@ -348,7 +353,7 @@ connection.onRequest("angelscript/getModuleForSymbol", (...params: any[]) : stri
 	let uri = defArr[0].uri;
 	let module = getModuleName(uri);
 
-	connection.console.log(`Definition found at ${module}`);
+	//connection.console.log(`Definition found at ${module}`);
 
 	return module;
 });
