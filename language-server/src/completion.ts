@@ -253,6 +253,7 @@ function GetGlobalScopeTypes(scope : scriptfiles.ASScope, includeClass : boolean
         types.push(glob);
 
     let checkScope = scope;
+    let checkedScope = scope;
     while (checkScope)
     {
         if (checkScope.scopetype == scriptfiles.ASScopeType.Global
@@ -262,7 +263,23 @@ function GetGlobalScopeTypes(scope : scriptfiles.ASScope, includeClass : boolean
             if(dbscope)
                 types.push(dbscope);
         }
+        if (checkScope.scopetype == scriptfiles.ASScopeType.Global) {
+            checkedScope = checkScope;
+        }
         checkScope = checkScope.parentscope;
+    }
+
+    for (let file of scriptfiles.GetAllFiles())
+    {
+        checkScope = file.rootscope;
+        if (checkScope == checkedScope)
+            continue;
+        if (checkScope.scopetype == scriptfiles.ASScopeType.Global)
+        {
+            let dbscope = typedb.GetType(checkScope.typename);
+            if(dbscope)
+                types.push(dbscope);
+        }
     }
 
     return types;
@@ -271,7 +288,7 @@ function GetGlobalScopeTypes(scope : scriptfiles.ASScope, includeClass : boolean
 function GetScopeCompletions(initialTerm : string, scope : scriptfiles.ASScope, completions : Array<CompletionItem>)
 {
     if (scope.scopetype != scriptfiles.ASScopeType.Class
-    //    && scope.scopetype != scriptfiles.ASScopeType.Global
+        && scope.scopetype != scriptfiles.ASScopeType.Global
     )
     {
         for (let scopevar of scope.variables)
@@ -711,6 +728,24 @@ export function Complete(params : TextDocumentPositionParams) : Array<Completion
             AddCompletionsFromType(globaltype, initialTerm[0].name, completions, inScope);
 
         AddKeywordCompletions(initialTerm[0].name, completions);
+/*
+        for (let file of scriptfiles.GetAllFiles())
+        {
+            GetScopeCompletions(initialTerm[0].name, file.rootscope, completions);
+            for (let subscope of file.rootscope.subscopes) {
+                if (subscope.scopetype != scriptfiles.ASScopeType.Function) {
+                    continue;
+                }
+                if (CanCompleteTo(initialTerm[0].name, subscope.funcname)) {
+                    completions.push({
+                        label: subscope.funcname,
+                        detail: subscope.funcreturn + " " + subscope.funcname,
+                        kind : SymbolKind.Function,
+                    });
+                }
+            }
+        }
+*/
     }
 
     // We are already inside a type, so we need to complete based on that type
@@ -733,6 +768,7 @@ export function Resolve(item : CompletionItem) : CompletionItem
 
     if (item.data.length == 1)
     {
+        //item.detail = type.declaredModule + ".as";
         item.documentation = type.documentation;
         return item;
     }
@@ -740,13 +776,16 @@ export function Resolve(item : CompletionItem) : CompletionItem
     let func = type.getMethod(item.data[1]);
     if (func)
     {
+        //item.detail = func.declaredModule + ".as";
         item.documentation = func.documentation;
     }
     else
     {
         let prop = type.getProperty(item.data[1]);
-        if (prop && prop.documentation)
+        if (prop && prop.documentation) {
+            //item.detail = func.declaredModule + ".as";
             item.documentation = prop.documentation;
+        }
     }
 
     return item;

@@ -3,12 +3,12 @@
 	"scopeName": "source.angelscript",
 	"patterns": [
 		{
-			"name": "variable.other.structtype.angelscript",
-			"match": "\\b[A-Z][A-Za-z0-9_]+(\\s[@&])?\\b"
+		    "name": "keyword.statement.angelscript",
+			"match": "\\b(auto|is|array|funcdef)\\b\\s*"
 		},
 		{
-		    "name": "keyword.statement.angelscript",
-			"match": "\\b(auto|is)\\b\\s*"
+		    "name": "storage.type.built-in.primitive",
+			"match": "\\b(int8|int16|int32|int64|uint8|uint16|uint32|uint64)\\b\\s*"
 		},
 		{
 			"include": "#special_block"
@@ -76,6 +76,9 @@
 		},
 		{
 			"include": "source.c"
+		},
+		{
+			"include": "#operators"
 		}
 	],
 	"repository": {
@@ -121,6 +124,14 @@
 				},
 				{
 					"include": "$base"
+				}
+			]
+		},
+		"operators": {
+			"patterns": [
+				{
+					"match": "\\s*@\\s*(?=\\w)",
+					"name": "storage.modifier.pointer.angelscript"
 				}
 			]
 		},

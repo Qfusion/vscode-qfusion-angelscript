@@ -214,7 +214,6 @@ connection.onDidChangeWatchedFiles((_change) => {
 // This handler provides the initial list of the completion items.
 connection.onCompletion((_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 	let completions = completion.Complete(_textDocumentPosition);
-	let debug = modules;
 	//connection.console.log(JSON.stringify(completions));
 	return completions;
 });
