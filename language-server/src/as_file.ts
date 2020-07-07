@@ -444,7 +444,7 @@ let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,
 let re_enum = /enum\s*([A-Za-z0-9_]+)\s*$/g;
 let re_import = /(\n|^)\s*import\s+([A-Za-z0-9_.]+)\s*;/g;
 let re_for_declaration = /for\s*\(((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z_0-9]+)\s*:\s*([^\n]*)\)/g;
-let re_delegate = /(delegate|event)[ \t]+((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\((.*)\);/g;
+let re_delegate = /(delegate|event|funcdef)[ \t]+((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\((.*)\);/g;
 
 function ParseDeclarations(root : ASScope)
 {
@@ -926,7 +926,7 @@ function _GetScopeSymbol(file : ASFile, scope : ASScope, symbolname : string) : 
     {
         if(innerscope.scopetype != ASScopeType.Function)
             continue;
-        if (innerscope.funcname != "Get"+symbolname && innerscope.funcname != "Set"+symbolname)
+        if (innerscope.funcname != "get_"+symbolname && innerscope.funcname != "set_"+symbolname)
             continue;
         return file.GetLocation(innerscope.startPosInFile);
     }
@@ -959,6 +959,7 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
     else
         dbtype.isDelegate = true;
 
+/*
     {
         let method = new typedb.DBMethod();
         method.name = "IsBound";
@@ -1033,9 +1034,10 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
     }
     else
     {
+        */
         {
             let method = new typedb.DBMethod();
-            method.name = "Execute";
+            method.name = delegate.name;
             method.returnType = delegate.returnValue;
             method.documentation = "Execute the function bound to the delegate. Will throw an error if nothing is bound, use ExecuteIfBound() if you do not want an error in that case.";
             method.args = new Array<typedb.DBArg>();
@@ -1049,7 +1051,7 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
         
             dbtype.methods.push(method);
         }
-
+/*
         {
             let method = new typedb.DBMethod();
             method.name = "ExecuteIfBound";
@@ -1097,7 +1099,7 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
             dbtype.methods.push(method);
         }
     }
-
+*/
     return dbtype;
 }
 

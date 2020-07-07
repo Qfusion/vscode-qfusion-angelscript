@@ -201,15 +201,15 @@ function ExtractCompletingTermAt(pos : number, uri : string) : [Array<ASTerm>, s
 
 function CanCompleteTo(completing : string, suggestion : string) : boolean
 {
-    if (completing.startsWith("Get"))
+    if (completing.startsWith("get_"))
     {
-        if (suggestion.startsWith("Get"))
-            return suggestion.substr(3).toLowerCase().indexOf(completing.substr(3).toLowerCase()) != -1;
+        if (suggestion.startsWith("get_"))
+            return suggestion.substr(4).toLowerCase().indexOf(completing.substr(4).toLowerCase()) != -1;
     }
-    else if (completing.startsWith("Set"))
+    else if (completing.startsWith("set_"))
     {
-        if (suggestion.startsWith("Set"))
-            return suggestion.substr(3).toLowerCase().indexOf(completing.substr(3).toLowerCase()) != -1;
+        if (suggestion.startsWith("set_"))
+            return suggestion.substr(4).toLowerCase().indexOf(completing.substr(4).toLowerCase()) != -1;
     }
 
     return suggestion.toLowerCase().indexOf(completing.toLowerCase()) != -1;
@@ -272,11 +272,21 @@ function GetGlobalScopeTypes(scope : scriptfiles.ASScope, includeClass : boolean
     for (let file of scriptfiles.GetAllFiles())
     {
         checkScope = file.rootscope;
-        if (checkScope == checkedScope)
+        if (checkScope.scopetype != scriptfiles.ASScopeType.Global)
             continue;
-        if (checkScope.scopetype == scriptfiles.ASScopeType.Global)
-        {
+
+        if (checkScope != checkedScope) {
             let dbscope = typedb.GetType(checkScope.typename);
+            if(dbscope)
+                types.push(dbscope);
+        }
+
+        // spill enum values into global scope
+        for (let subscope of checkScope.subscopes) {
+            if (subscope.scopetype != scriptfiles.ASScopeType.Enum) {
+                continue
+            }
+            let dbscope = typedb.GetType("__"+subscope.typename);
             if(dbscope)
                 types.push(dbscope);
         }
@@ -544,6 +554,10 @@ function GetTermCompletions(initialTerm : Array<ASTerm>, inScope : scriptfiles.A
     let completingStr = initialTerm[initialTerm.length - 1].name.toLowerCase();
     AddCompletionsFromType(curtype, completingStr, completions, inScope);
 
+    if (completingStr == "") {
+        return;
+    }
+
     // Deal with unified call syntax from global functions
     let globaltypes = GetGlobalScopeTypes(inScope, false, false);
     for (let globaltype of globaltypes)
@@ -612,20 +626,20 @@ export function AddCompletionsFromType(curtype : typedb.DBType, completingStr : 
             completions.push({
                     label: prop.name,
                     detail: prop.format(),
-                    kind : CompletionItemKind.Field,
+                    kind : curtype.isEnum ? CompletionItemKind.EnumMember : CompletionItemKind.Field,
                     data: [curtype.typename, prop.name],
             });
         }
     }
 
-    let getterStr = "Get"+completingStr;
+    let getterStr = "get_"+completingStr;
     for (let func of curtype.allMethods())
     {
         if (CanCompleteTo(getterStr, func.name))
         {
             if (!isFunctionAccessibleFromScope(curtype, func, inScope))
                 continue;
-            let propname = func.name.substr(3);
+            let propname = func.name.substr(4);
             if(!props.has(propname) && func.args.length == 0)
             {
                 completions.push({
@@ -662,7 +676,7 @@ function AddKeywordCompletions(completingStr : string, completions : Array<Compl
         "class",
         "void", "float", "bool", "int", "double",
         "null", "return", "true", "false", "this",
-        "const",
+        "const", "funcdef", "enum"
     ])
     {
         if (CanCompleteTo(completingStr, kw))
@@ -846,6 +860,30 @@ export function Signature(params : TextDocumentPositionParams) : SignatureHelp
     };
     let foundFunc = false;
 
+    // check for delegate type
+    let termType = GetTypeFromTerm(term, 0, term.length, scope, true);
+    if (termType && termType.isDelegate && termType.methods.length > 0) {
+        let params = new Array<ParameterInformation>();
+
+        for (let arg of termType.methods[0].args)
+        {
+            params.push(<ParameterInformation>
+            {
+                label: arg.format()
+            });
+        }
+
+        let sig = <SignatureInformation> {
+            label: termType.methods[0].format(),
+            parameters: params,
+            documentation: termType.documentation,
+        };
+
+        sigHelp.activeSignature = sigHelp.signatures.length;
+        sigHelp.signatures.push(sig);
+        return sigHelp;
+    }
+
     for (let type of checkTypes)
     {
         if (scope.scopetype == scriptfiles.ASScopeType.Class)
@@ -981,6 +1019,16 @@ function AddScopeSymbols(file: scriptfiles.ASFile, scope : scriptfiles.ASScope, 
     {
         scopeSymbol.kind = SymbolKind.Enum;
         symbols.push(scopeSymbol);
+
+        for (let enumVar of scope.variables)
+        {
+            symbols.push(<SymbolInformation> {
+                name : enumVar.name,
+                kind : SymbolKind.EnumMember,
+                location : file.GetLocation(enumVar.posInFile),
+                containerName : scope.typename,
+            });
+        }
     }
     else if (scope.scopetype == scriptfiles.ASScopeType.Function)
     {
@@ -1078,8 +1126,8 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
         return null;
 
     let hover = "";
-    let settername = "Set"+term[term.length-1].name;
-    let gettername = "Get"+term[term.length-1].name;
+    let settername = "set_"+term[term.length-1].name;
+    let gettername = "get_"+term[term.length-1].name;
     let hadPropertyDoc = false;
     for (let type of checkTypes)
     {
@@ -1125,7 +1173,7 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
                 continue;
 
             let prefix = null;
-            if(type.typename.startsWith("__"))
+            if(!type.isEnum && type.typename.startsWith("__"))
             {
                 if(type.typename != "__")
                     prefix = type.typename.substring(2)+"::";

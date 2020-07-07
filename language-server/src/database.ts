@@ -442,10 +442,10 @@ export class DBType
 
     getPropertyAccessorType(name : string) : string | null
     {
-        let getter = this.getMethod("Get"+name);
+        let getter = this.getMethod("get_"+name);
         if (getter)
             return getter.returnType;
-        let setter = this.getMethod("Get"+name);
+        let setter = this.getMethod("set_"+name);
         if (setter && setter.args.length >= 1)
             return setter.args[0].typename;
         return null;
@@ -535,6 +535,7 @@ export let database = new Map<string, DBType>();
 
 export function CleanTypeName(typename : string) : string
 {
+    typename = typename.trim();
     if (typename.startsWith("const "))
         typename = typename.substring(6);
     if (typename.endsWith("&"))
