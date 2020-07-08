@@ -635,6 +635,9 @@ export function AddCompletionsFromType(curtype : typedb.DBType, completingStr : 
     let getterStr = "get_"+completingStr;
     for (let func of curtype.allMethods())
     {
+        if (func.isDestructor)
+            continue;
+
         if (CanCompleteTo(getterStr, func.name))
         {
             if (!isFunctionAccessibleFromScope(curtype, func, inScope))
@@ -1135,7 +1138,7 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
         {
             if (func.name != term[term.length-1].name && func.name != gettername && func.name != settername)
                 continue;
-            if (func.isConstructor)
+            if (func.isConstructor || func.isDestructor)
                 continue;
 
             let prefix = null;

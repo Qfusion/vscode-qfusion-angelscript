@@ -90,6 +90,7 @@ export class ASScope
     funcprivate : boolean;
     funcprotected : boolean;
     isConstructor : boolean = false;
+    isDestructor : boolean = false;
     isConst : boolean = false;
 
     parentscope : ASScope;
@@ -295,6 +296,7 @@ export class ASScope
         dbfunc.isPrivate = this.funcprivate;
         dbfunc.isProtected = this.funcprotected;
         dbfunc.isConstructor = this.isConstructor;
+        dbfunc.isDestructor = this.isDestructor;
         dbfunc.isConst = this.isConst;
 
         dbfunc.args = new Array<typedb.DBArg>();
@@ -438,8 +440,8 @@ function ParseEnumValues(root : ASScope)
 
 let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z_0-9]+)(;|\s*\(.*\)\s*;|\s*=.*;)/g;
 let re_classheader = /(class|struct|namespace)\s+([A-Za-z0-9_]+)(\s*:\s*([A-Za-z0-9_]+))?\s*$/g;
-let re_functionheader = /(private\s+|protected\s+)?((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\(((.|\n|\r)*)\)(\s*const)?/g;
-let re_constructor = /[\t ]*([A-Za-z0-9_]+)\(((.|\n|\r)*)\)/g;
+let re_functionheader = /(private\s+|protected\s+)?((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\s*\(((.|\n|\r)*)\)(\s*const)?/g;
+let re_constructor = /[\t ]*(~?([A-Za-z0-9_]+))\(((.|\n|\r)*)\)/g;
 let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)\s*[@&]?(\s*(in|out|inout))?)\s*([A-Za-z_0-9]+)/g;
 let re_enum = /enum\s*([A-Za-z0-9_]+)\s*$/g;
 let re_import = /(\n|^)\s*import\s+([A-Za-z0-9_.]+)\s*;/g;
@@ -467,7 +469,7 @@ function ParseDeclarations(root : ASScope)
     {
         re_functionheader.lastIndex = 0;
         let funcmatch = re_functionheader.exec(cleanedDeclaration);
-        if (funcmatch)
+        if (funcmatch && funcmatch[7] != "if")
         {
             root.scopetype = ASScopeType.Function;
             root.funcname = funcmatch[7];
@@ -501,15 +503,20 @@ function ParseDeclarations(root : ASScope)
             re_constructor.lastIndex = 0;
             let constructormatch = re_constructor.exec(cleanedDeclaration);
 
-            if (constructormatch && constructormatch[1] == root.parentscope.typename)
+            if (constructormatch && constructormatch[2] == root.parentscope.typename)
             {
                 root.scopetype = ASScopeType.Function;
                 root.funcname = constructormatch[1];
-                root.funcreturn = constructormatch[1];
-                root.funcargs = constructormatch[2];
+                root.funcargs = constructormatch[3];
                 root.funcprivate = false;
                 root.funcprotected = false;
-                root.isConstructor = true;
+                if (constructormatch[1].startsWith("~")) {
+                    root.isDestructor = true;
+                    root.funcreturn = "";
+                } else {
+                    root.isConstructor = true;
+                    root.funcreturn = constructormatch[2];
+                }
                 root.documentation = ExtractDocumentationBackwards(root.declaration, root.declaration.length-1);
 
                 re_argument.lastIndex = 0;

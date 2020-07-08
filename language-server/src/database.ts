@@ -96,6 +96,7 @@ export class DBMethod
     isProtected : boolean = false;
     isPrivate : boolean = false;
     isConstructor : boolean = false;
+    isDestructor : boolean = false;
     isEvent : boolean = false;
     isConst : boolean = false;
 
