@@ -679,7 +679,7 @@ function AddKeywordCompletions(completingStr : string, completions : Array<Compl
         "class",
         "void", "float", "bool", "int", "double",
         "null", "return", "true", "false", "this",
-        "const", "funcdef", "enum"
+        "const", "funcdef", "enum", "is"
     ])
     {
         if (CanCompleteTo(completingStr, kw))
