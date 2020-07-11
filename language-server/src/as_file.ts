@@ -369,7 +369,7 @@ function SplitScopes(root : ASScope)
                     }
                     activeScope = new ASScope();
                     activeScope.startPosInParent = pos;
-                    activeScope.startPosInFile = pos + root.startPosInFile;
+                    activeScope.startPosInFile = pos + 1 + root.startPosInFile;
                     activeScope.parentscope = root;
                     activeScope.modulename = root.modulename;
 
@@ -438,11 +438,12 @@ function ParseEnumValues(root : ASScope)
     }
 }
 
-let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z_0-9]+)(;|\s*\(.*\)\s*;|\s*=.*;)/g;
+let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))(([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?)?((\s*,\s*([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?))+?)?);/g;
+let re_variable = /\s*,?\s*([A-Za-z_0-9]+)($|\s*=\s*[^,]*?(?:,|$)|\s*=?\s*\(.*?\)\s*)/g;
 let re_classheader = /(class|struct|namespace)\s+([A-Za-z0-9_]+)(\s*:\s*([A-Za-z0-9_]+))?\s*$/g;
 let re_functionheader = /(private\s+|protected\s+)?((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\s*\(((.|\n|\r)*)\)(\s*const)?/g;
 let re_constructor = /[\t ]*(~?([A-Za-z0-9_]+))\(((.|\n|\r)*)\)/g;
-let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)\s*[@&]?(\s*(in|out|inout))?)\s*([A-Za-z_0-9]+)/g;
+let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:\s+[@&]\s*?|\s*[@&]?\s+)(\s*(in|out|inout)\s+)?)\s*([A-Za-z_0-9]+)/g;
 let re_enum = /enum\s*([A-Za-z0-9_]+)\s*$/g;
 let re_import = /(\n|^)\s*import\s+([A-Za-z0-9_.]+)\s*;/g;
 let re_for_declaration = /for\s*\(((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z_0-9]+)\s*:\s*([^\n]*)\)/g;
@@ -567,26 +568,41 @@ function ParseDeclarations(root : ASScope)
             if(match[2] == 'default')
                 continue;
 
-            let decl = new ASVariable();
-            decl.typename = match[2].trim();
-            decl.name = match[7];
-            decl.isArgument = false;
-            decl.posInParent = match.index + offset;
-            decl.posInFile = root.startPosInFile + decl.posInParent;
-            decl.isPrivate = match[1] && match[1].startsWith("private");
-            decl.isProtected = match[1] && match[1].startsWith("protected");
+            let typename = match[2].trim();
+            let isPrivate = match[1] && match[1].startsWith("private");
+            let isProtected = match[1] && match[1].startsWith("protected");
+            let offset2 = match.index + offset + match[0].indexOf(match[7]);
 
+            let documentation = "";
             if (root.scopetype == ASScopeType.Class)
-                decl.documentation = ExtractDocumentationBackwards(content, match.index);
+                documentation = ExtractDocumentationBackwards(content, match.index);
 
-            decl.expression = match[8].trim();
-            if(decl.expression.startsWith("="))
-                decl.expression = decl.expression.substr(1);
-            if(decl.expression.endsWith(";"))
-                decl.expression = decl.expression.substr(0, decl.expression.length-1);
-            decl.expression = decl.expression.trim();
+            let v = match[7];
+            re_variable.lastIndex = 0;
+            while(true) {
+                let varmatch = re_variable.exec(v);
+                if (varmatch == null)
+                    break;
 
-            root.variables.push(decl);
+                let decl = new ASVariable();
+                decl.typename = typename;
+                decl.name = varmatch[1];
+                decl.isArgument = false;
+                decl.posInParent = varmatch.index + offset2 + varmatch[0].indexOf(varmatch[1]);
+                decl.posInFile = root.startPosInFile + decl.posInParent;
+                decl.isPrivate = isPrivate;
+                decl.isProtected = isProtected;
+
+                decl.expression = typename + ' ' + varmatch[1].trim();
+                if(decl.expression.startsWith("="))
+                    decl.expression = decl.expression.substr(1);
+                if(decl.expression.endsWith(";"))
+                    decl.expression = decl.expression.substr(0, decl.expression.length-1);
+                decl.expression = decl.expression.trim();
+                decl.documentation = documentation;
+
+                root.variables.push(decl);
+            }
         }
 
         re_for_declaration.lastIndex = 0;
