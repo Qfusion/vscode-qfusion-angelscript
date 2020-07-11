@@ -296,10 +296,9 @@ function UpdateFileFromDisk(uri : string) : scriptfiles.ASFile
 
 function getPathName(uri : string) : string
 {
-	let pathname = decodeURIComponent(uri.replace("file://", ""));
-	if(pathname.startsWith("\\"))
+	let pathname = decodeURIComponent(uri.replace("file://", "").replace("%3A", ":"));
+	if(pathname.startsWith("/") && pathname.indexOf(":") != -1)
 		pathname = pathname.substr(1);
-
 	return pathname;
 }
 
@@ -308,7 +307,7 @@ function getFileUri(pathname : string) : string
 	let uri = pathname.replace(/\\/g, "/");
 	if(!uri.startsWith("/"))
 		uri = "/" + uri;
-
+	uri = uri.replace(/\:/g, "%3A");
 	return ("file://" + uri);
 }
 
