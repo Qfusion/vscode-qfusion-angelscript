@@ -416,7 +416,7 @@ function SplitScopes(root : ASScope)
     }
 }
 
-let re_enumvalue = /([A-Za-z0-9_]+)\s*(=\s*[\-x0-9]+)?(\/\/.*\n)?(\/\*.*\*\/)?(,|$)/g;
+let re_enumvalue = /([A-Za-z0-9_]+)\s*(=\s*[\-x0-9a-fA-F]+)?(\/\/.*\n)?(\/\*.*\*\/)?(,|$)/g;
 function ParseEnumValues(root : ASScope)
 {
     re_enumvalue.lastIndex = 0;
