@@ -693,6 +693,7 @@ function ParseDeclarations(root : ASScope)
 
         if (dbtype2 != null) {
             dbtype2.properties = dbtype2.properties.concat(dbtype.properties)
+            dbtype2.methods = dbtype2.methods.concat(dbtype.methods);
         } else {
             typedb.GetDatabase().set(dbtype.typename, dbtype);
         }
@@ -817,6 +818,7 @@ export function RemoveScopeFromDatabase(scope : ASScope, modulename : string)
             return;
         }
         dbtype.properties = dbtype.properties.filter(obj => obj.declaredModule != modulename);
+        dbtype.methods = dbtype.methods.filter(obj => obj.declaredModule != modulename);
         return;
     }
 
