@@ -514,19 +514,7 @@ function GetTypeFromTerm(initialTerm : Array<ASTerm>, startIndex : number, endIn
                     return null;
             break;
             case ASTermType.Namespace:
-                if (curname == "Super")
-                {
-                    if (curscope != null && curscope.getSuperTypeForScope())
-                    {
-                        curtype = typedb.GetType(curscope.getSuperTypeForScope());
-                        curname = null;
-                        curscope = null;
-                        if (curtype == null)
-                            return null;
-                    }
-
-                }
-                else if (curname != null)
+                if (curname != null)
                 {
                     curtype = typedb.GetType("__"+curname);
                     curname = null;

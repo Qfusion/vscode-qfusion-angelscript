@@ -7,6 +7,7 @@ export class DBProperty
     documentation : string;
     isProtected : boolean;
     isPrivate : boolean;
+    declaredModule : string;
 
     fromJSON(name : string, input : any)
     {

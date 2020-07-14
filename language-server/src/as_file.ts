@@ -227,6 +227,7 @@ export class ASScope
             dbprop.documentation = prop.documentation;
             dbprop.isPrivate = prop.isPrivate;
             dbprop.isProtected = prop.isProtected;
+            dbprop.declaredModule = this.modulename;
             dbtype.properties.push(dbprop);
         }
 
@@ -685,7 +686,16 @@ function ParseDeclarations(root : ASScope)
     let dbtype = root.toDBType();
     if (dbtype)
     {
-        typedb.GetDatabase().set(dbtype.typename, dbtype);
+        let dbtype2 : typedb.DBType = null
+        if (root.scopetype == ASScopeType.Namespace) {
+            dbtype2 = typedb.GetDatabase().get(dbtype.typename);
+        }
+
+        if (dbtype2 != null) {
+            dbtype2.properties = dbtype2.properties.concat(dbtype.properties)
+        } else {
+            typedb.GetDatabase().set(dbtype.typename, dbtype);
+        }
     }
 
     if (root.delegates)
@@ -791,21 +801,27 @@ function ExtractCommentOnPreviousLine(code : string, position : number, minPosit
     return "";
 }
 
-export function RemoveScopeFromDatabase(scope : ASScope)
+export function RemoveScopeFromDatabase(scope : ASScope, modulename : string)
 {
-    let typename = scope.getDBTypename();
-    if(typename != null)
-    {
-        typedb.GetDatabase().delete(typename);
-        typedb.GetDatabase().delete("__"+typename);
-    }
-
-    if (scope.scopetype == ASScopeType.Function && scope.isConstructor)
-    {
-    }
-
     for(let subscope of scope.subscopes)
-        RemoveScopeFromDatabase(subscope);
+        RemoveScopeFromDatabase(subscope, modulename);
+
+    let typename = scope.getDBTypename();
+    if(typename == null) {
+        return;
+    }
+
+    if (scope.scopetype == ASScopeType.Namespace) {
+        let dbtype = typedb.GetDatabase().get("__" + typename);
+        if (dbtype == null) {
+            return;
+        }
+        dbtype.properties = dbtype.properties.filter(obj => obj.declaredModule != modulename);
+        return;
+    }
+
+    typedb.GetDatabase().delete(typename);
+    typedb.GetDatabase().delete("__"+typename);
 }
 
 let loadedFiles = new Map<string,ASFile>();
@@ -827,7 +843,7 @@ export function UpdateContent(pathname : string, modulename : string, content : 
     let previousFile = loadedFiles.get(pathname);
     if (previousFile != null)
     {
-        RemoveScopeFromDatabase(previousFile.rootscope);
+        RemoveScopeFromDatabase(previousFile.rootscope, modulename);
     }
 
     let file = new ASFile();
@@ -982,82 +998,6 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
     else
         dbtype.isDelegate = true;
 
-/*
-    {
-        let method = new typedb.DBMethod();
-        method.name = "IsBound";
-        method.returnType = "bool";
-        method.documentation = "Whether the anything is bound to the delegate.";
-        method.args = [];
-        dbtype.methods.push(method);
-    }
-
-    {
-        let method = new typedb.DBMethod();
-        method.name = "Clear";
-        method.returnType = "void";
-        method.documentation = "Remove all bindings from the delegate.";
-        method.args = [];
-        dbtype.methods.push(method);
-    }
-
-    if (delegate.isMulticast)
-    {
-        {
-            let method = new typedb.DBMethod();
-            method.name = "Broadcast";
-            method.returnType = delegate.returnValue;
-            method.documentation = "Broadcast event to all existing bindings.";
-            method.args = new Array<typedb.DBArg>();
-            for (let delegateArg of delegate.args)
-            {
-                let arg = new typedb.DBArg();
-                arg.name = delegateArg.name;
-                arg.typename = delegateArg.typename;
-                method.args.push(arg);
-            }
-        
-            dbtype.methods.push(method);
-        }
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "AddUFunction";
-            method.returnType = "void";
-            method.documentation = "Add a new binding to this event. Make sure the function you're binding is a UFUNCTION().";
-            method.args = [
-                new typedb.DBArg().init("UObject", "Object"),
-                new typedb.DBArg().init("FName", "FunctionName"),
-            ];
-            dbtype.methods.push(method);
-        }
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "Unbind";
-            method.returnType = "void";
-            method.documentation = "Unbind a specific function that was previously added to this event.";
-            method.args = [
-                new typedb.DBArg().init("UObject", "Object"),
-                new typedb.DBArg().init("FName", "FunctionName"),
-            ];
-            dbtype.methods.push(method);
-        }
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "UnbindObject";
-            method.returnType = "void";
-            method.documentation = "Unbind all previously added functions that are called on the specified object.";
-            method.args = [
-                new typedb.DBArg().init("UObject", "Object"),
-            ];
-            dbtype.methods.push(method);
-        }
-    }
-    else
-    {
-        */
         {
             let method = new typedb.DBMethod();
             method.name = delegate.name;
@@ -1074,158 +1014,12 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
         
             dbtype.methods.push(method);
         }
-/*
-        {
-            let method = new typedb.DBMethod();
-            method.name = "ExecuteIfBound";
-            method.returnType = delegate.returnValue;
-            method.documentation = "Execute the function if one is bound to the delegate, otherwise do nothing.";
-            method.args = new Array<typedb.DBArg>();
-            for (let delegateArg of delegate.args)
-            {
-                let arg = new typedb.DBArg();
-                arg.name = delegateArg.name;
-                arg.typename = delegateArg.typename;
-                method.args.push(arg);
-            }
-        
-            dbtype.methods.push(method);
-        }
 
-        {
-            let method = new typedb.DBMethod();
-            method.name = "BindUFunction";
-            method.returnType = "void";
-            method.documentation = "Set the function that is bound to this delegate. Make sure the function you're binding is a UFUNCTION().";
-            method.args = [
-                new typedb.DBArg().init("UObject", "Object"),
-                new typedb.DBArg().init("FName", "FunctionName"),
-            ];
-            dbtype.methods.push(method);
-        }
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "GetUObject";
-            method.returnType = "UObject";
-            method.documentation = "Get the object that this delegate is bound to. Returns nullptr if unbound.";
-            method.args = [];
-            dbtype.methods.push(method);
-        }
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "GetFunctionName";
-            method.returnType = "FName";
-            method.documentation = "Get the function that this delegate is bound to. Returns NAME_None if unbound.";
-            method.args = [];
-            dbtype.methods.push(method);
-        }
-    }
-*/
     return dbtype;
 }
 
 function PostProcessScope(scope : ASScope)
 {
-    if (scope.scopetype == ASScopeType.Class && !scope.isStruct)
-    {
-        let dbtype = new typedb.DBType();
-        dbtype.initEmpty("__"+scope.typename);
-
-        {
-            let method = new typedb.DBMethod();
-            method.name = "StaticClass";
-            method.returnType = "UClass";
-            method.documentation = "Gets the descriptor for the class generated for the specified type.";
-            method.args = [];
-            dbtype.methods.push(method);
-        }
-
-        let basetype = typedb.GetType(scope.typename);
-        if(basetype && basetype.inheritsFrom("UActorComponent"))
-        {
-            {
-                let method = new typedb.DBMethod();
-                method.name = "Get";
-                method.returnType = scope.typename;
-                method.documentation = "Get the component of this type from an actor. Specified name is optional.";
-                method.args = [
-                    new typedb.DBArg().init("AActor", "Actor"),
-                    new typedb.DBArg().init("FName", "WithName", "NAME_None"),
-                ];
-                dbtype.methods.push(method);
-            }
-
-            {
-                let method = new typedb.DBMethod();
-                method.name = "GetAll";
-                method.returnType = "void";
-                method.documentation = "Get all components of a particular type on an actor.";
-                method.args = [
-                    new typedb.DBArg().init("AActor", "Actor"),
-                    new typedb.DBArg().init("TArray<"+scope.typename+">&", "OutComponents"),
-                ];
-                dbtype.methods.push(method);
-            }
-
-            {
-                let method = new typedb.DBMethod();
-                method.name = "GetOrCreate";
-                method.returnType = scope.typename;
-                method.documentation = "Get a component of a particular type on an actor, create it if it doesn't exist. Specified name is optional.";
-                method.args = [
-                    new typedb.DBArg().init("AActor", "Actor"),
-                    new typedb.DBArg().init("FName", "WithName", "NAME_None"),
-                ];
-                dbtype.methods.push(method);
-            }
-
-            {
-                let method = new typedb.DBMethod();
-                method.name = "Create";
-                method.returnType = scope.typename;
-                method.documentation = "Always create a new component of this type on an actor.";
-                method.args = [
-                    new typedb.DBArg().init("AActor", "Actor"),
-                    new typedb.DBArg().init("FName", "WithName", "NAME_None"),
-                ];
-                dbtype.methods.push(method);
-            }
-        }
-
-        if(basetype && basetype.inheritsFrom("AActor"))
-        {
-            {
-                let method = new typedb.DBMethod();
-                method.name = "GetAll";
-                method.returnType = "void";
-                method.documentation = "Get all actors of this type that are currently in the world.";
-                method.args = [
-                    new typedb.DBArg().init("TArray<"+scope.typename+">&", "OutActors"),
-                ];
-                dbtype.methods.push(method);
-            }
-
-            {
-                let method = new typedb.DBMethod();
-                method.name = "Spawn";
-                method.returnType = scope.typename;
-                method.documentation = "Spawn a new actor of this type into the world.";
-                method.args = [
-                    new typedb.DBArg().init("FVector", "Location", "FVector::ZeroVector"),
-                    new typedb.DBArg().init("FRotator", "Rotation", "FRotator::ZeroRotator"),
-                    new typedb.DBArg().init("FName", "Name", "NAME_None"),
-                ];
-                dbtype.methods.push(method);
-            }
-        }
-
-        typedb.database.set(dbtype.typename, dbtype);
-    }
-
-    for (let subscope of scope.subscopes)
-        PostProcessScope(subscope);
 }
 
 export function PostProcessModule(modulename : string)
