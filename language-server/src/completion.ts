@@ -1023,7 +1023,7 @@ function AddScopeSymbols(file: scriptfiles.ASFile, scope : scriptfiles.ASScope, 
     }
     else if (scope.scopetype == scriptfiles.ASScopeType.Function)
     {
-        scopeSymbol.name = scope.funcname+"()";
+        scopeSymbol.name = scope.funcname+"("+scope.funcargs+")";
         if (scope.parentscope.scopetype == scriptfiles.ASScopeType.Class)
         {
             scopeSymbol.kind = SymbolKind.Method;
