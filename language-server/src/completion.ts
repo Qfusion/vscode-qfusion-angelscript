@@ -1530,11 +1530,7 @@ export function ResolveAutos(root : scriptfiles.ASScope)
                 {
                     if (literalExpr.startsWith("\""))
                     {
-                        vardesc.typename = "FString";
-                    }
-                    else if (literalExpr.startsWith("n\""))
-                    {
-                        vardesc.typename = "FName";
+                        vardesc.typename = "String";
                     }
                 }
                 else if (re_literal_int.test(literalExpr))
