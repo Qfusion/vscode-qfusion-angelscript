@@ -166,7 +166,7 @@ export function connect()
     unreal = new Socket;
     connected = true;
 	//connection.console.log('Connecting to unreal editor...');
-	unreal.connect(27099, "localhost", function()
+	unreal.connect(28099, "localhost", function()
 	{
 		//connection.console.log('Connection to unreal editor established.');
 	});

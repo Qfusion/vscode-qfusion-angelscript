@@ -49,7 +49,7 @@ function connect_unreal() {
 				// begins with / while on Windows it is omitted. So we need to
 				// add it here to make sure both platforms are valid.
 				let localpath = msg.readString();
-				let filename = (localpath[0] == '/') ? ("file://" + localpath) : ("file:///" + localpath);
+				let fileuri = getFileUri(localpath);
 				//connection.console.log('Diagnostics received: '+filename);
 
 				let msgCount = msg.readInt();
@@ -86,7 +86,7 @@ function connect_unreal() {
 					diagnostics.push(diagnosic);
 				}
 
-				connection.sendDiagnostics({ uri: filename, diagnostics });
+				connection.sendDiagnostics({ uri: fileuri, diagnostics });
 			}
 			else if(msg.type == MessageType.DebugDatabase)
 			{
@@ -115,7 +115,7 @@ function connect_unreal() {
 		}
 	});
 
-	unreal.connect(27099, "localhost", function()
+	unreal.connect(28099, "localhost", function()
 	{
 		//connection.console.log('Connection to unreal editor established.');
 		setTimeout(function()
