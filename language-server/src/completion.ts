@@ -647,7 +647,7 @@ export function AddCompletionsFromType(curtype : typedb.DBType, completingStr : 
         {
             if (!isFunctionAccessibleFromScope(curtype, func, inScope))
                 continue;
-            if(!func.name.startsWith("op"))
+            if(!func.name.startsWith("op") && !func.name.startsWith("get_") && !func.name.startsWith("set_"))
             {
                 completions.push({
                         label: func.name,
