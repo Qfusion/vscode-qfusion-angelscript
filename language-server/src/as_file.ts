@@ -594,7 +594,7 @@ function ParseDeclarations(root : ASScope)
                 decl.isPrivate = isPrivate;
                 decl.isProtected = isProtected;
 
-                decl.expression = typename + ' ' + varmatch[1].trim();
+                decl.expression = varmatch[2].trim();
                 if(decl.expression.startsWith("="))
                     decl.expression = decl.expression.substr(1);
                 if(decl.expression.endsWith(";"))

@@ -1505,12 +1505,15 @@ export function GetDefinition(params : TextDocumentPositionParams) : Definition
 
 let re_literal_float = /^-?[0-9]+\.[0-9]*f$/;
 let re_literal_int = /^-?[0-9]+$/;
+let re_auto_decl = /^auto\s*@?$/;
 
 export function ResolveAutos(root : scriptfiles.ASScope)
 {
     for (let vardesc of root.variables)
     {
-        if (vardesc.typename != "auto")
+        if (!vardesc.typename.startsWith("auto"))
+            continue;
+        if (!re_auto_decl.test(vardesc.typename))
             continue;
         if (!vardesc.expression)
             continue;
