@@ -1491,7 +1491,7 @@ export function GetDefinition(params : TextDocumentPositionParams) : Definition
                 if (!dbtype.declaredModule)
                     continue;
 
-                let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, null, term[term.length-1].name);
+                let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, checkTypes.length == 1 ? checkTypes[0].typename : null, term[term.length-1].name);
                 if (loc)
                     locations.push(loc);
             }
