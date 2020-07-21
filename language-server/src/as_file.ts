@@ -69,7 +69,6 @@ export class ASDelegate
     arglist : string;
     posInParent : number;
     posInFile : number;
-    isMulticast : boolean;
     args : Array<ASVariable>;
 };
 
@@ -651,7 +650,6 @@ function ParseDeclarations(root : ASScope)
                 decl.returnValue = match[2].trim();
                 decl.posInParent = match.index + offset;
                 decl.posInFile = root.startPosInFile + decl.posInParent;
-                decl.isMulticast = match[1] == "event";
                 decl.args = new Array<ASVariable>();
 
                 root.remove_variable(decl.name);
@@ -995,27 +993,22 @@ function MakeDelegateDBType(scope : ASScope, delegate : ASDelegate) : typedb.DBT
     dbtype.properties = new Array<typedb.DBProperty>();
     dbtype.methods = new Array<typedb.DBMethod>();
     dbtype.declaredModule = scope.modulename;
-    if (delegate.isMulticast)
-        dbtype.isEvent = true;
-    else
-        dbtype.isDelegate = true;
+    dbtype.isDelegate = true;
 
-        {
-            let method = new typedb.DBMethod();
-            method.name = delegate.name;
-            method.returnType = delegate.returnValue;
-            method.documentation = "Execute the function bound to the delegate. Will throw an error if nothing is bound, use ExecuteIfBound() if you do not want an error in that case.";
-            method.args = new Array<typedb.DBArg>();
-            for (let delegateArg of delegate.args)
-            {
-                let arg = new typedb.DBArg();
-                arg.name = delegateArg.name;
-                arg.typename = delegateArg.typename;
-                method.args.push(arg);
-            }
+    let method = new typedb.DBMethod();
+    method.name = delegate.name;
+    method.returnType = delegate.returnValue;
+    method.documentation = "Execute the function bound to the delegate. Will throw an error if nothing is bound, use ExecuteIfBound() if you do not want an error in that case.";
+    method.args = new Array<typedb.DBArg>();
+    for (let delegateArg of delegate.args)
+    {
+        let arg = new typedb.DBArg();
+        arg.name = delegateArg.name;
+        arg.typename = delegateArg.typename;
+        method.args.push(arg);
+    }
         
-            dbtype.methods.push(method);
-        }
+    dbtype.methods.push(method);
 
     return dbtype;
 }

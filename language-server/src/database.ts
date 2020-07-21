@@ -150,11 +150,6 @@ export class DBMethod
             this.isConst = input['const'];
         else
             this.isConst = false;
-
-        if ('event' in input)
-            this.isEvent = input['event'];
-        else
-            this.isEvent = false;
     }
 
     format(prefix : string = null, skipFirstArg = false, skipReturn = false, replaceName : string = null) : string
@@ -217,7 +212,6 @@ export class DBType
     namespaceResolved : boolean;
     shadowedNamespace : boolean;
     isDelegate : boolean = false;
-    isEvent : boolean = false;
     isPrimitive : boolean = false;
 
     declaredModule : string;

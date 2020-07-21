@@ -652,7 +652,7 @@ export function AddCompletionsFromType(curtype : typedb.DBType, completingStr : 
                 completions.push({
                         label: func.name,
                         detail: func.format(),
-                        kind: func.isEvent ? CompletionItemKind.Event : CompletionItemKind.Method,
+                        kind: CompletionItemKind.Method,
                         data: [curtype.typename, func.name],
                 });
             }
@@ -1219,21 +1219,8 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
             hover += "```angelscript\n";
             if (hoveredType.isDelegate)
             {
-                hover += "delegate ";
-                let mth = hoveredType.getMethod("ExecuteIfBound");
-                if (mth)
-                    hover += mth.format(null, false, false, hoveredType.typename);
-                else
-                    hover += hoveredType.typename;
-            }
-            else if (hoveredType.isEvent)
-            {
-                hover += "event ";
-                let mth = hoveredType.getMethod("Broadcast");
-                if (mth)
-                    hover += mth.format(null, false, false, hoveredType.typename);
-                else
-                    hover += hoveredType.typename;
+                hover += "funcdef ";
+                hover += hoveredType.typename;
             }
             else
             {
@@ -1438,8 +1425,6 @@ export function GetDefinition(params : TextDocumentPositionParams) : Definition
         let dbtype = typedb.GetType(term[0].name);
         if(!dbtype)
             dbtype = typedb.GetType("__"+term[0].name);
-        if (!dbtype && term[0].name == "Super" && scope.getSuperTypeForScope())
-            dbtype = typedb.GetType(scope.getSuperTypeForScope());
 
         if (dbtype && dbtype.declaredModule)
         {
