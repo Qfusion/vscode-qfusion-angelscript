@@ -580,10 +580,10 @@ export function GetType(typename : string) : DBType | null
                 return null;
 
             let inst = dbbasetype.createTemplateInstance(subtypes);
-            inst.typename = typename;
             if (!inst)
                 return null;
 
+            inst.typename = typename;
             database.set(typename, inst);
             return inst;
         }

@@ -237,6 +237,15 @@ export class ASScope
             {
                 if (!subscope.isConstructor)
                     dbtype.methods.push(dbfunc);
+
+                if (dbfunc.name == "opIndex" && this.typename == "array")
+                {
+                    if (dbtype.subTypes == null)
+                    {
+                        dbtype.subTypes = new Array<string>();
+                        dbtype.subTypes.push(typedb.CleanTypeName(dbfunc.returnType));
+                    }
+                }
             }
 
             if (subscope.scopetype == ASScopeType.Class)
@@ -460,7 +469,7 @@ function ParseEnumValues(root : ASScope)
     }
 }
 
-let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))(([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?)?((\s*,\s*([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?))+?)?);/g;
+let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<\s*[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\s*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))(([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?)?((\s*,\s*([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?))+?)?);/g;
 let re_variable = /\s*,?\s*([A-Za-z_0-9]+)($|\s*=\s*[^,]*?(?:,|$)|\s*=?\s*\(.*?\)\s*)/g;
 let re_classheader = /(class|struct|namespace)\s+([A-Za-z0-9_]+)(\s*:\s*([A-Za-z0-9_]+))?\s*$/g;
 let re_functionheader = /(private\s+|protected\s+)?((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\s*\(((.|\n|\r)*)\)(\s*const)?/g;

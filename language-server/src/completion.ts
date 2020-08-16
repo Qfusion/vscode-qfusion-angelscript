@@ -760,15 +760,18 @@ export function Complete(params : TextDocumentPositionParams) : Array<Completion
     }
 
     // try with implicit namespace
-    if (inScope != null)
+    if (completions.length == 0 && inScope != null)
     {
         let implicitns = true;
-        for (let i = 0; i < initialTerm.length; ++i)
+        if (initialTerm.length >= 2)
         {
-            if (initialTerm[i].type != ASTermType.Namespace)
-                continue;
-            implicitns = false;
-            break;
+            for (let i = 0; i < initialTerm.length; ++i)
+            {
+                if (initialTerm[i].type != ASTermType.Namespace)
+                    continue;
+                implicitns = false;
+                break;
+            }
         }
 
         if (implicitns)
@@ -1167,12 +1170,15 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
     let hover = "";
 
     let implicitns = true;
-    for (let i = 0; i < term.length; ++i)
+    if (term.length >= 2)
     {
-        if (term[i].type != ASTermType.Namespace)
-            continue;
-        implicitns = false;
-        break;
+        for (let i = 0; i < term.length; ++i)
+        {
+            if (term[i].type != ASTermType.Namespace)
+                continue;
+            implicitns = false;
+            break;
+        }
     }
 
     for (let i = 0; i < 2; ++i)
