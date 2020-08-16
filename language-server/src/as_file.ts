@@ -496,7 +496,7 @@ function ParseDeclarations(root : ASScope)
         {
             root.scopetype = ASScopeType.Function;
             root.funcname = funcmatch[7];
-            root.funcreturn = funcmatch[2];
+            root.funcreturn = funcmatch[2].trim();
             root.funcargs = funcmatch[8];
             root.funcprivate = funcmatch[1] && funcmatch[1].startsWith("private");
             root.funcprotected = funcmatch[1] && funcmatch[1].startsWith("protected");
