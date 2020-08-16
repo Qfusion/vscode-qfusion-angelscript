@@ -469,16 +469,16 @@ function ParseEnumValues(root : ASScope)
     }
 }
 
-let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<\s*[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\s*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))(([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?)?((\s*,\s*([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?))+?)?);/g;
+let re_declaration = /(private\s+|protected\s+)?((const\s*)?([A-Za-z_0-9]+(\<\s*[A-Za-z0-9_]+(?:\s*[@&]\s*)?(,[\t ]*[A-Za-z0-9_@]+(?:\s*[@&]\s*)?)*\s*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))(([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?)?((\s*,\s*([A-Za-z_0-9]+)($|\s*\(.*\)\s*|\s*=.*?))+?)?);/g;
 let re_variable = /\s*,?\s*([A-Za-z_0-9]+)($|\s*=\s*[^,]*?(?:,|$)|\s*=?\s*\(.*?\)\s*)/g;
 let re_classheader = /(class|struct|namespace)\s+([A-Za-z0-9_]+)(\s*:\s*([A-Za-z0-9_]+))?\s*$/g;
 let re_functionheader = /(private\s+|protected\s+)?((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\s*\(((.|\n|\r)*)\)(\s*const)?/g;
 let re_constructor = /[\t ]*(~?([A-Za-z0-9_]+))\(((.|\n|\r)*)\)/g;
-let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:\s+[@&]\s*?|\s*[@&]?\s+)(\s*(in|out|inout)\s+)?)\s*([A-Za-z_0-9]+)/g;
+let re_argument = /(,\s*|\(\s*|^\s*)((const\s*)?([A-Za-z_0-9]+(\<\s*[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\s*\>)?)(?:\s+[@&]\s*?|\s*[@&]?\s+)(\s*(in|out|inout)\s+)?)\s*([A-Za-z_0-9]+)/g;
 let re_enum = /enum\s*([A-Za-z0-9_]+)\s*$/g;
 let re_import = /(\n|^)\s*import\s+([A-Za-z0-9_.]+)\s*;/g;
 let re_for_declaration = /for\s*\(((const\s*)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,[\t ]*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z_0-9]+)\s*:\s*([^\n]*)\)/g;
-let re_delegate = /(delegate|event|funcdef)[ \t]+((const[ \t]+)?([A-Za-z_0-9]+(\<[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\((.*)\);/g;
+let re_delegate = /(delegate|event|funcdef)[ \t]+((const[ \t]+)?([A-Za-z_0-9]+(\<\s*[A-Za-z0-9_]+(,\s*[A-Za-z0-9_]+)*\s*\>)?)(?:(?:\s+[@&]\s*?|\s*[@&]?\s+)))([A-Za-z0-9_]+)\((.*)\);/g;
 
 function ParseDeclarations(root : ASScope)
 {
