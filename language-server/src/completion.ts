@@ -759,6 +759,43 @@ export function Complete(params : TextDocumentPositionParams) : Array<Completion
         GetTermCompletions(initialTerm, inScope, completions);
     }
 
+    // try with implicit namespace
+    if (inScope != null)
+    {
+        let implicitns = true;
+        for (let i = 0; i < initialTerm.length; ++i)
+        {
+            if (initialTerm[i].type != ASTermType.Namespace)
+                continue;
+            implicitns = false;
+            break;
+        }
+
+        if (implicitns)
+        {
+            let changed = false;
+            let parentscope = inScope;
+            while(parentscope)
+            {
+                if (parentscope.scopetype == scriptfiles.ASScopeType.Namespace)
+                {
+                    initialTerm.unshift(<ASTerm> {
+                        type: ASTermType.Name,
+                        name: parentscope.typename,
+                    },
+                    <ASTerm> {
+                        type: ASTermType.Namespace
+                    });
+                    changed = true;
+                }
+                parentscope = parentscope.parentscope;
+            }
+
+            if (changed)
+                GetTermCompletions(initialTerm, inScope, completions);
+        }
+    }
+
     // Check if we're inside a function call and complete argument names
     let FuncCall = Signature(params, true);
     if (FuncCall)
@@ -1127,168 +1164,210 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
         return null;
 
     let [term, scope] = ExtractCompletingTermAt(pos, params.textDocument.uri);
-
-    let checkTypes : Array<typedb.DBType>;
-
-    let curtype = GetTypeFromTerm(term, 0, term.length - 1, scope);
-    if (curtype)
-        checkTypes = [curtype];
-    else if (curtype == null && term.length == 1)
-        checkTypes = GetGlobalScopeTypes(scope, true);
-    else
-        return null;
-
     let hover = "";
-    let settername = "set_"+term[term.length-1].name;
-    let gettername = "get_"+term[term.length-1].name;
-    let hadPropertyDoc = false;
-    for (let type of checkTypes)
+
+    let implicitns = true;
+    for (let i = 0; i < term.length; ++i)
     {
-        for (let func of type.allMethods())
-        {
-            if (func.name != term[term.length-1].name && func.name != gettername && func.name != settername)
-                continue;
-            if (func.isConstructor || func.isDestructor)
-                continue;
+        if (term[i].type != ASTermType.Namespace)
+            continue;
+        implicitns = false;
+        break;
+    }
 
-            let prefix = null;
-            if(type.typename.startsWith("__"))
-            {
-                if(type.typename != "__")
-                    prefix = type.typename.substring(2)+"::";
+    for (let i = 0; i < 2; ++i)
+    {
+        let checkTypes : Array<typedb.DBType>;
+
+        if( i != 0 ) {
+            // on the second run, prepend the namespace declaration terms and resolve again
+            if (!implicitns)
+                break;
+
+            let changed = false;
+            let parentscope = scope.parentscope;
+            while(parentscope) {
+                if (parentscope.scopetype == scriptfiles.ASScopeType.Namespace)
+                {
+                    term.unshift(<ASTerm> {
+                        type: ASTermType.Name,
+                        name: parentscope.typename,
+                    },
+                    <ASTerm> {
+                        type: ASTermType.Namespace
+                    });
+                    changed = true;
+                }
+                parentscope = parentscope.parentscope;
             }
-            else if(!type.typename.startsWith("//"))
-                prefix = type.typename+".";
 
-            hover = "";
-            hover += FormatHoverDocumentation(func.documentation);
-            if (func.documentation)
-                hadPropertyDoc = true;
-            if (func.name == gettername)
-                hover += "```angelscript\n"+func.returnType+" "+prefix+term[term.length-1].name+"\n```";
-            else if (func.name == settername && func.args.length >= 1)
-                hover += "```angelscript\n"+func.args[0].typename+" "+prefix+term[term.length-1].name+"\n```";
-            else
-                hover += "```angelscript\n"+func.format(prefix)+"\n```";
-
-            if ((func.name == gettername || func.name == settername) && !hadPropertyDoc)
-                continue;
-            else
+            if (!changed)
                 break;
         }
 
-        if (hover.length != 0 && hadPropertyDoc)
-            break;
+        let curtype = GetTypeFromTerm(term, 0, term.length - 1, scope);
+        if (curtype)
+            checkTypes = [curtype];
+        else if (curtype == null && term.length == 1)
+            checkTypes = GetGlobalScopeTypes(scope, true);
+        else
+            return null;
 
-        for (let prop of type.allProperties())
+        hover = "";
+        let settername = "set_"+term[term.length-1].name;
+        let gettername = "get_"+term[term.length-1].name;
+        let hadPropertyDoc = false;
+        for (let type of checkTypes)
         {
-            if (prop.name != term[term.length-1].name)
-                continue;
-
-            let prefix = null;
-            if(!type.isEnum && type.typename.startsWith("__"))
+            for (let func of type.allMethods())
             {
-                if(type.typename != "__")
-                    prefix = type.typename.substring(2)+"::";
-            }
-            /*else if(!type.typename.startsWith("//"))
-                prefix = type.typename+".";*/
-
-            hover = "";
-            hover += FormatHoverDocumentation(prop.documentation);
-            hover += "```angelscript\n"+prop.format(prefix)+"\n```";
-            if (prop.documentation)
-                hadPropertyDoc = true;
-            break;
-        }
-
-        if(hover.length != 0)
-            break;
-    }
-
-    if (term.length == 1 && scope && hover == "")
-    {
-        hover = GetScopeHover(term[0].name, scope);
-    }
-
-    // Deal with unified call syntax from global functions
-    if(term.length != 1 && hover == "")
-    {
-        let ucsScopes = GetGlobalScopeTypes(scope, false, false);
-        for (let globaltype of ucsScopes)
-        {
-            for (let func of globaltype.allMethods())
-            {
-                if (func.name != term[term.length-1].name)
+                if (func.name != term[term.length-1].name && func.name != gettername && func.name != settername)
                     continue;
-                if (!func.args || func.args.length == 0 || !curtype.inheritsFrom(func.args[0].typename))
+                if (func.isConstructor || func.isDestructor)
                     continue;
+
+                let prefix = null;
+                if(type.typename.startsWith("__"))
+                {
+                    if(type.typename != "__")
+                        prefix = type.typename.substring(2)+"::";
+                }
+                else if(!type.typename.startsWith("//"))
+                    prefix = type.typename+".";
 
                 hover = "";
                 hover += FormatHoverDocumentation(func.documentation);
-                hover += "```angelscript\n"+func.format(null, true)+"\n```";
-            }
-        }
-    }
+                if (func.documentation)
+                    hadPropertyDoc = true;
+                if (func.name == gettername)
+                    hover += "```angelscript\n"+func.returnType+" "+prefix+term[term.length-1].name+"\n```";
+                else if (func.name == settername && func.args.length >= 1)
+                    hover += "```angelscript\n"+func.args[0].typename+" "+prefix+term[term.length-1].name+"\n```";
+                else
+                    hover += "```angelscript\n"+func.format(prefix)+"\n```";
 
-    if (term.length == 1 && (!hover || hover.length == 0) && term[0].name.length != 0)
-    {
-        let hoveredType = typedb.GetType(term[0].name);
-        if (hoveredType)
-        {
-            let hover = "";
-            hover += FormatHoverDocumentation(hoveredType.documentation);
-            hover += "```angelscript\n";
-            if (hoveredType.isDelegate)
-            {
-                hover += "funcdef ";
-                hover += hoveredType.typename;
+                if ((func.name == gettername || func.name == settername) && !hadPropertyDoc)
+                    continue;
+                else
+                    break;
             }
-            else
+
+            if (hover.length != 0 && hadPropertyDoc)
+                break;
+
+            for (let prop of type.allProperties())
             {
-                if (!hoveredType.isPrimitive)
+                if (prop.name != term[term.length-1].name)
+                    continue;
+
+                let prefix = null;
+                if(!type.isEnum && type.typename.startsWith("__"))
                 {
-                    if (hoveredType.isStruct)
-                        hover += "struct ";
-                    else
-                        hover += "class ";
+                    if(type.typename != "__")
+                        prefix = type.typename.substring(2)+"::";
                 }
-                hover += hoveredType.typename;
-                if (hoveredType.supertype)
-                    hover += " : "+hoveredType.supertype;
-                else if (hoveredType.unrealsuper)
-                    hover += " : "+hoveredType.unrealsuper;
+                /*else if(!type.typename.startsWith("//"))
+                    prefix = type.typename+".";*/
+
+                hover = "";
+                hover += FormatHoverDocumentation(prop.documentation);
+                hover += "```angelscript\n"+prop.format(prefix)+"\n```";
+                if (prop.documentation)
+                    hadPropertyDoc = true;
+                break;
             }
 
-            hover += "\n```";
-            return <Hover> {contents: <MarkupContent> {
-                kind: "markdown",
-                value: hover,
-            }};
+            if(hover.length != 0)
+                break;
         }
 
-        let nsType = typedb.GetType("__"+term[0].name);
-        if (nsType)
+        if (term.length == 1 && scope && hover == "")
         {
-            let hover = "";
-            hover += FormatHoverDocumentation(nsType.documentation);
-            hover += "```angelscript\n";
-            nsType.resolveNamespace();
-            if (nsType.isEnum)
-                hover += "enum ";
-            else
-                hover += "namespace ";
-            hover += nsType.rawName;
-            hover += "\n```";
-
-            return <Hover> {contents: <MarkupContent> {
-                kind: "markdown",
-                value: hover,
-            }};
+            hover = GetScopeHover(term[0].name, scope);
         }
-    }
 
-    if (hover == "")
+        // Deal with unified call syntax from global functions
+        if(term.length != 1 && hover == "")
+        {
+            let ucsScopes = GetGlobalScopeTypes(scope, false, false);
+            for (let globaltype of ucsScopes)
+            {
+                for (let func of globaltype.allMethods())
+                {
+                    if (func.name != term[term.length-1].name)
+                        continue;
+                    if (!func.args || func.args.length == 0 || !curtype.inheritsFrom(func.args[0].typename))
+                        continue;
+
+                    hover = "";
+                    hover += FormatHoverDocumentation(func.documentation);
+                    hover += "```angelscript\n"+func.format(null, true)+"\n```";
+                }
+            }
+        }
+
+        if (term.length == 1 && (!hover || hover.length == 0) && term[0].name.length != 0)
+        {
+            let hoveredType = typedb.GetType(term[0].name);
+            if (hoveredType)
+            {
+                let hover = "";
+                hover += FormatHoverDocumentation(hoveredType.documentation);
+                hover += "```angelscript\n";
+                if (hoveredType.isDelegate)
+                {
+                    hover += "funcdef ";
+                    hover += hoveredType.typename;
+                }
+                else
+                {
+                    if (!hoveredType.isPrimitive)
+                    {
+                        if (hoveredType.isStruct)
+                            hover += "struct ";
+                        else
+                            hover += "class ";
+                    }
+                    hover += hoveredType.typename;
+                    if (hoveredType.supertype)
+                        hover += " : "+hoveredType.supertype;
+                    else if (hoveredType.unrealsuper)
+                        hover += " : "+hoveredType.unrealsuper;
+                }
+
+                hover += "\n```";
+                return <Hover> {contents: <MarkupContent> {
+                    kind: "markdown",
+                    value: hover,
+                }};
+            }
+
+            let nsType = typedb.GetType("__"+term[0].name);
+            if (nsType)
+            {
+                let hover = "";
+                hover += FormatHoverDocumentation(nsType.documentation);
+                hover += "```angelscript\n";
+                nsType.resolveNamespace();
+                if (nsType.isEnum)
+                    hover += "enum ";
+                else
+                    hover += "namespace ";
+                hover += nsType.rawName;
+                hover += "\n```";
+
+                return <Hover> {contents: <MarkupContent> {
+                    kind: "markdown",
+                    value: hover,
+                }};
+            }
+        }
+
+        if(hover != null && hover.length > 0)
+            break;
+    }
+   
+    if (hover == null || hover == "")
         return null;
 
     return <Hover> {contents: <MarkupContent> {
