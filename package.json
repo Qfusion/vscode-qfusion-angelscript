@@ -2,7 +2,7 @@
     "name": "qfusion-angelscript",
     "displayName": "Qfusion Angelscript",
     "description": "AngelScript Language Server and Debug Adapter for use with the Qfusion engine from https://github.com/Qfusion/qfusion",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "publisher": "Qfusion",
     "engines": {
         "vscode": "^1.22.0"
