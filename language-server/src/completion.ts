@@ -1217,7 +1217,7 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
         else if (curtype == null && term.length == 1)
             checkTypes = GetGlobalScopeTypes(scope, true);
         else
-            return null;
+            continue;
 
         hover = "";
         let settername = "set_"+term[term.length-1].name;
