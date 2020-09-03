@@ -1185,14 +1185,16 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
     {
         let checkTypes : Array<typedb.DBType>;
 
-        if( i != 0 ) {
+        if (i != 0)
+        {
             // on the second run, prepend the namespace declaration terms and resolve again
             if (!implicitns)
                 break;
 
             let changed = false;
             let parentscope = scope.parentscope;
-            while(parentscope) {
+            while (parentscope)
+            {
                 if (parentscope.scopetype == scriptfiles.ASScopeType.Namespace)
                 {
                     term.unshift(<ASTerm> {
@@ -1497,101 +1499,145 @@ export function GetDefinition(params : TextDocumentPositionParams) : Definition
 
     let [term, scope] = ExtractCompletingTermAt(pos, params.textDocument.uri);
 
-    let checkTypes : Array<typedb.DBType>;
-
-    let curtype = GetTypeFromTerm(term, 0, term.length - 1, scope);
-    if (curtype)
-        checkTypes = [curtype];
-    else if (curtype == null && term.length == 1)
-        checkTypes = GetGlobalScopeTypes(scope, true);
-    else
-        return null;
-
-    ExpandCheckedTypes(checkTypes);
-
-    let locations : Array<Location> = [];
-
-    for (let type of checkTypes)
+    let implicitns = true;
+    if (term.length >= 2)
     {
-        if (!type.declaredModule)
+        for (let i = 0; i < term.length; ++i)
+        {
+            if (term[i].type != ASTermType.Namespace)
+                continue;
+            implicitns = false;
+            break;
+        }
+    }
+
+    for (let i = 0; i < 2; ++i)
+    {
+        let checkTypes : Array<typedb.DBType>;
+
+        if (i != 0)
+        {
+            // on the second run, prepend the namespace declaration terms and resolve again
+            if (!implicitns)
+                break;
+
+            let changed = false;
+            let parentscope = scope.parentscope;
+            while (parentscope)
+            {
+                if (parentscope.scopetype == scriptfiles.ASScopeType.Namespace)
+                {
+                    term.unshift(<ASTerm> {
+                        type: ASTermType.Name,
+                        name: parentscope.typename,
+                    },
+                    <ASTerm> {
+                        type: ASTermType.Namespace
+                    });
+                    changed = true;
+                }
+                parentscope = parentscope.parentscope;
+            }
+
+            if (!changed)
+                break;
+        }
+
+        let curtype = GetTypeFromTerm(term, 0, term.length - 1, scope);
+        if (curtype)
+            checkTypes = [curtype];
+        else if (curtype == null && term.length == 1)
+            checkTypes = GetGlobalScopeTypes(scope, true);
+        else
             continue;
 
-        let loc = scriptfiles.GetSymbolLocation(type.declaredModule, type.typename, term[term.length-1].name);
-        if (loc)
-            locations.push(loc);
-    }
+        ExpandCheckedTypes(checkTypes);
 
-    if (term.length == 1 && scope)
-    {
-        // We could be trying to go to something declared as a variable right inside the scope we're in
-        let loc = scriptfiles.GetSymbolLocationInScope(scope, term[0].name);
-        if (loc)
-            locations.push(loc);
+        let locations : Array<Location> = [];
 
-        // We could be trying to go to a type, rather than a variable or function
-        let dbtype = typedb.GetType(term[0].name);
-        if(!dbtype)
-            dbtype = typedb.GetType("__"+term[0].name);
-
-        if (dbtype && dbtype.declaredModule)
+        for (let type of checkTypes)
         {
-            let loc = scriptfiles.GetTypeSymbolLocation(dbtype.declaredModule, dbtype.typename);
-            if (loc)
-                locations.push(loc);
-        }
-
-        // We could be trying to get a global symbol for any of the many global scopes
-        if (locations.length == 0)
-        {
-            for(let [typename, dbtype] of typedb.database)
-            {
-                if (!typename.startsWith("//"))
-                    continue;
-                if (!dbtype.declaredModule)
-                    continue;
-
-                let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, null, term[0].name);
-                if (loc)
-                    locations.push(loc);
-            }
-        }
-
-    }
-
-    if (term.length >= 1 && scope)
-    {
-        // We could be trying to get a ucs called global function that's in-scope
-        let ucsScopes = GetGlobalScopeTypes(scope, false, false);
-        for (let globaltype of ucsScopes)
-        {
-            let func = globaltype.getMethod(term[term.length-1].name);
-            if(!func)
+            if (!type.declaredModule)
                 continue;
 
-            let loc = scriptfiles.GetSymbolLocation(func.declaredModule, null, func.name);
+            let loc = scriptfiles.GetSymbolLocation(type.declaredModule, type.typename, term[term.length-1].name);
             if (loc)
                 locations.push(loc);
         }
 
-        // We could by trying to get a ucs called global function in any global scope
-        if (locations.length == 0)
+        if (term.length == 1 && scope)
         {
-            for(let [typename, dbtype] of typedb.database)
-            {
-                if (!typename.startsWith("//"))
-                    continue;
-                if (!dbtype.declaredModule)
-                    continue;
+            // We could be trying to go to something declared as a variable right inside the scope we're in
+            let loc = scriptfiles.GetSymbolLocationInScope(scope, term[0].name);
+            if (loc)
+                locations.push(loc);
 
-                let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, checkTypes.length == 1 ? checkTypes[0].typename : null, term[term.length-1].name);
+            // We could be trying to go to a type, rather than a variable or function
+            let dbtype = typedb.GetType(term[0].name);
+            if(!dbtype)
+                dbtype = typedb.GetType("__"+term[0].name);
+
+            if (dbtype && dbtype.declaredModule)
+            {
+                let loc = scriptfiles.GetTypeSymbolLocation(dbtype.declaredModule, dbtype.typename);
                 if (loc)
                     locations.push(loc);
             }
+
+            // We could be trying to get a global symbol for any of the many global scopes
+            if (locations.length == 0)
+            {
+                for(let [typename, dbtype] of typedb.database)
+                {
+                    if (!typename.startsWith("//"))
+                        continue;
+                    if (!dbtype.declaredModule)
+                        continue;
+
+                    let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, null, term[0].name);
+                    if (loc)
+                        locations.push(loc);
+                }
+            }
+
         }
+
+        if (term.length >= 1 && scope)
+        {
+            // We could be trying to get a ucs called global function that's in-scope
+            let ucsScopes = GetGlobalScopeTypes(scope, false, false);
+            for (let globaltype of ucsScopes)
+            {
+                let func = globaltype.getMethod(term[term.length-1].name);
+                if(!func)
+                    continue;
+
+                let loc = scriptfiles.GetSymbolLocation(func.declaredModule, null, func.name);
+                if (loc)
+                    locations.push(loc);
+            }
+
+            // We could by trying to get a ucs called global function in any global scope
+            if (locations.length == 0)
+            {
+                for(let [typename, dbtype] of typedb.database)
+                {
+                    if (!typename.startsWith("//"))
+                        continue;
+                    if (!dbtype.declaredModule)
+                        continue;
+
+                    let loc = scriptfiles.GetSymbolLocation(dbtype.declaredModule, checkTypes.length == 1 ? checkTypes[0].typename : null, term[term.length-1].name);
+                    if (loc)
+                        locations.push(loc);
+                }
+            }
+        }
+
+        if (locations && locations.length != 0)
+            return locations;
     }
 
-    if (locations && locations.length != 0)
-        return locations;
     return null;
 }
 
