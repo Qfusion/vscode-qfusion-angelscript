@@ -166,6 +166,9 @@ function ExtractCompletingTermAt(pos : number, uri : string) : [Array<ASTerm>, s
             case ' ':
             case '<':
             case '\n':
+            case '&':
+            case '~':
+            case '^':
                 if(brackets == 0 && squarebrackets == 0)
                     end = true;
             break;
