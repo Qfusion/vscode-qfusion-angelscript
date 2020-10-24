@@ -554,7 +554,7 @@ export function ReplaceTemplateType(typename : string, templateTypes : Array<str
     return typename;
 }
 
-let re_template = /([A-Za-z_0-9]+)\<([A-Za-z_0-9,\s]+)\>/;
+let re_template = /([A-Za-z_0-9]+)\<([A-Za-z_0-9,\s@]+)\>/;
 export function GetType(typename : string) : DBType | null
 {
     typename = CleanTypeName(typename);
