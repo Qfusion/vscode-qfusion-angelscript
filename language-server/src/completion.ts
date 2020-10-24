@@ -1650,6 +1650,8 @@ let re_auto_decl = /^auto\s*@?$/;
 
 export function ResolveAutos(root : scriptfiles.ASScope)
 {
+    let re_handles = /^[@\s]+/;
+
     for (let vardesc of root.variables)
     {
         if (!vardesc.typename.startsWith("auto"))
@@ -1659,10 +1661,62 @@ export function ResolveAutos(root : scriptfiles.ASScope)
         if (!vardesc.expression)
             continue;
 
-        let terms = ParseTerms(vardesc.expression);
-        let resolvedType = GetTypeFromTerm(terms, 0, terms.length, root, true);
-        if(resolvedType)
-            vardesc.typename = resolvedType.typename;
+        let isHandle = vardesc.typename.endsWith("@");
+        let decl = vardesc.expression;
+        decl = decl.replace(re_handles, "");
+
+        let terms = ParseTerms(decl);
+
+        let implicitns = true;
+        if (terms.length >= 2)
+        {
+            for (let i = 0; i < terms.length; ++i)
+            {
+                if (terms[i].type != ASTermType.Namespace)
+                    continue;
+                implicitns = false;
+                break;
+            }
+        }
+
+        let resolvedType : typedb.DBType;
+        for (let i = 0; i < 2; ++i)
+        {
+            if (i != 0)
+            {
+                // on the second run, prepend the namespace declaration terms and resolve again
+                if (!implicitns)
+                    break;
+
+                let changed = false;
+                let parentscope = root;
+                while (parentscope)
+                {
+                    if (parentscope.scopetype == scriptfiles.ASScopeType.Namespace)
+                    {
+                        terms.unshift(<ASTerm> {
+                            type: ASTermType.Name,
+                            name: parentscope.typename,
+                        },
+                        <ASTerm> {
+                            type: ASTermType.Namespace
+                        });
+                        changed = true;
+                    }
+                    parentscope = parentscope.parentscope;
+                }
+
+                if (!changed)
+                    break;
+            }
+
+            resolvedType = GetTypeFromTerm(terms, 0, terms.length, root, true);
+            if(resolvedType)
+            {
+                vardesc.typename = resolvedType.typename;
+                break;
+            }
+        }
 
         // Parse basic literal types
         if (!resolvedType)
@@ -1692,6 +1746,11 @@ export function ResolveAutos(root : scriptfiles.ASScope)
                     }
                 }
             }
+        }
+
+        if (isHandle && !vardesc.typename.endsWith("@"))
+        {
+            vardesc.typename += "@";
         }
     }
 
