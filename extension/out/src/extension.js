@@ -118,19 +118,24 @@ class ASConfigurationProvider {
                 config.stopOnEntry = true;
             }
         }
+        let port = config.port;
         if (EMBED_DEBUG_ADAPTER) {
             // start port listener on launch of first debug session
-            if (!this._server) {
+            // or if the port changed
+            if (!this._server || (this._server && port != this._config.port)) {
                 // start listening on a random port
                 this._server = Net.createServer(socket => {
                     const session = new debug_1.ASDebugSession();
                     session.setRunAsServer(true);
+                    if (port !== undefined)
+                        session.port = port;
                     session.start(socket, socket);
                 }).listen(0);
             }
             // make VS Code connect to debug server instead of launching debug adapter
             config.debugServer = this._server.address().port;
         }
+        this._config = config;
         return config;
     }
     dispose() {
