@@ -39,9 +39,6 @@ function connect_unreal() {
 		{
 			if (msg.type == MessageType.Diagnostics)
 			{
-				if (!InitialPostProcessDone)
-					RunInitialPostProcess();
-
 				let diagnostics: Diagnostic[] = [];
 
 				// Based on https://en.wikipedia.org/wiki/File_URI_scheme,
@@ -165,6 +162,7 @@ connection.onInitialize((_params): InitializeResult => {
 			if (asfile)
 				modules.push(asfile);
 		}
+		RunInitialPostProcess();
 	});
 
 	return {
@@ -191,6 +189,8 @@ connection.onInitialize((_params): InitializeResult => {
 let InitialPostProcessDone = false;
 function RunInitialPostProcess()
 {
+	if (InitialPostProcessDone)
+		return;
 	for (let file of scriptfiles.GetAllFiles())
 	{
 		completion.ResolveAutos(file.rootscope);
