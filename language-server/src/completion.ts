@@ -1225,6 +1225,15 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
             continue;
 
         hover = "";
+
+        if (term.length == 1 && scope && hover == "")
+        {
+            hover = GetScopeHover(term[0].name, scope);
+            if(hover && hover.length != 0)
+                break;
+            hover = "";
+        }
+
         let settername = "set_"+term[term.length-1].name;
         let gettername = "get_"+term[term.length-1].name;
         let hadPropertyDoc = false;
@@ -1290,11 +1299,6 @@ export function GetHover(params : TextDocumentPositionParams) : Hover
 
             if(hover.length != 0)
                 break;
-        }
-
-        if (term.length == 1 && scope && hover == "")
-        {
-            hover = GetScopeHover(term[0].name, scope);
         }
 
         // Deal with unified call syntax from global functions
