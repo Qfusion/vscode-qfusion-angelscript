@@ -42,7 +42,7 @@ export class ASDebugSession extends LoggingDebugSession
 
 	private _configurationDone = new Subject();
 
-	port = 27099;
+	port = 28099;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.

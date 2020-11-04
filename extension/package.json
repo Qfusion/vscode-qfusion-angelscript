@@ -1,11 +1,11 @@
 {
-    "name": "unreal-angelscript",
-    "displayName": "Unreal Angelscript",
-    "description": "Implements support for unreal-bound angelscript files.",
-    "version": "0.0.1",
-    "publisher": "Hazelight",
+    "name": "qfusion-angelscript",
+    "displayName": "Qfusion Angelscript",
+    "description": "AngelScript Language Server and Debug Adapter for use with the Qfusion engine from https://github.com/Qfusion/qfusion",
+    "version": "0.2.9",
+    "publisher": "Qfusion",
     "engines": {
-        "vscode": "^1.22.0"
+        "vscode": "^1.37.0"
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
